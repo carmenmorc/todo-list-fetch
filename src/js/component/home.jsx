@@ -1,69 +1,72 @@
-import React, { useEffect, useState } from 'react';
-import { readUserList, createUserTodo, updateTodo, deleteTodo } from '/src/services/api.js';
+import React, { useState, useEffect } from "react";
+import {
+    createUser,
+    deleteUser,
+    readUser,
+    readUserList,
+    createUserTodo,
+    updateTodo,
+    deleteTodo
+} from '../../services/api';
 
-function Home() {
+//create your first component
+const Home = () => {
+    const [inputValue, setInputValue] = useState("");
     const [todos, setTodos] = useState([]);
 
+    const fetchUserTodos = async () => {
+        try {
+            const userTodos = await readUser('usuario1');
+            setTodos(userTodos);  
+        } catch (error) {
+            console.error('Error fetching user todos:', error);
+            setTodos([]); 
+        }
+    };
+
+    const handleDeleteTodo = async (todoId) => {
+        try {
+            await deleteTodo(todoId);
+            setTodos((prevTodos) => prevTodos.filter(todo => todo.id !== todoId));
+        } catch (error) {
+            console.error('Error deleting to-do:', error);
+        }
+    };
+
     useEffect(() => {
-        fetchTodos();
+        fetchUserTodos();
     }, []);
 
-    const fetchTodos = () => {
-        readUserList(0, 10)
-            .then(data => {
-                if (Array.isArray(data)) {
-                    setTodos(data);
-                } else {
-                    console.error('Error: Data is not an array', data);
-                }
-            })
-            .catch(error => console.error('Error fetching todos:', error));
-    };
-
-    const handleAddTodo = (label) => {
-        createUserTodo('defaultUser', label, false) // Ajusta el usuario según tus necesidades
-            .then(() => fetchTodos())
-            .catch(error => console.error('Error adding todo:', error));
-    };
-
-    const handleUpdateTodo = (id, todoData) => {
-        updateTodo(id, todoData)
-            .then(() => fetchTodos())
-            .catch(error => console.error('Error updating todo:', error));
-    };
-
-    const handleDeleteTodo = (id) => {
-        deleteTodo(id)
-            .then(() => fetchTodos())
-            .catch(error => console.error('Error deleting todo:', error));
-    };
+    console.log(todos);
 
     return (
-        <div className="App">
-            <h1>Todo List</h1>
+        <div className="container">
+            <h1>THINGS TO DO TODAY !</h1>
             <ul>
-                {todos && todos.map(todo => (
-                    <li key={todo.id}>
-                        {todo.label}
-                        <button onClick={() => handleUpdateTodo(todo.id, { ...todo, is_done: !todo.is_done })}>
-                            {todo.is_done ? 'Mark as Undone' : 'Mark as Done'}
-                        </button>
-                        <button onClick={() => handleDeleteTodo(todo.id)}>Delete</button>
+                <li>
+                    <input
+                        type="text"
+                        onChange={(e) => setInputValue(e.target.value)}
+                        value={inputValue}
+                        onKeyDown={async (e) => { 
+                            if (e.key === "Enter") { 
+                                await createUserTodo('usuario1', inputValue, false);
+                                await fetchUserTodos();
+                                setInputValue("");
+                            }
+                        }}
+                        placeholder="What do you need to do?"
+                    ></input>
+                </li>
+                {todos.map((todo, index) => (
+                    <li key={index}>{todo.label}
+                         <button onClick={() => handleDeleteTodo(todo.id)}>✖️</button>
                     </li>
                 ))}
             </ul>
-            <input
-                type="text"
-                placeholder="Add new todo"
-                onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                        handleAddTodo(e.target.value);
-                        e.target.value = '';
-                    }
-                }}
-            />
+            <div>{todos.length} tasks left</div>
         </div>
     );
-}
+};
 
 export default Home;
